@@ -1,6 +1,7 @@
-import os
 from transformers import pipeline, Conversation
 from flask import Flask, request, jsonify, render_template_string, send_file
+from getpass import getpass
+import os
 import pyttsx3  # Text-to-Speech library
 
 app = Flask(__name__)
@@ -45,8 +46,8 @@ template = """
             const data = await response.json();
 
             const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML += `<p style="margin: 5px 0;"><strong>You:</strong> ${userInput} <button onclick="playText(&quot;${encodeURIComponent(userInput)}&quot;)">▶️</button></p>`;
-            chatBox.innerHTML += `<p style="margin: 5px 0;"><strong>Bot:</strong> ${data.response} <button onclick="playText(&quot;${encodeURIComponent(data.response)}&quot;)">▶️</button></p>`;
+            chatBox.innerHTML += <p style="margin: 5px 0;"><strong>You:</strong> ${userInput} <button onclick="playText(&quot;${encodeURIComponent(userInput)}&quot;)">▶️</button></p>;
+            chatBox.innerHTML += <p style="margin: 5px 0;"><strong>Bot:</strong> ${data.response} <button onclick="playText(&quot;${encodeURIComponent(data.response)}&quot;)">▶️</button></p>;
             document.getElementById('status').innerText = '';
             chatBox.scrollTop = chatBox.scrollHeight;
         }
@@ -103,7 +104,7 @@ template = """
             if (isPlaying) return;
             isPlaying = true;
             document.querySelectorAll('button').forEach(btn => btn.disabled = true);
-            const audio = new Audio(`/tts?text=${text}`);
+            const audio = new Audio(/tts?text=${text});
             audio.play();
             audio.onended = function() {
                 document.querySelectorAll('button').forEach(btn => btn.disabled = false);
@@ -113,6 +114,8 @@ template = """
     </script>
 </body>
 </html>
+
+
 """
 
 def truncate_conversation_history(history, max_length):
@@ -161,6 +164,6 @@ def text_to_speech():
     return send_file('response.mp3')
 
 if __name__ == "__main__":
-    os.environ["HUGGINGFACEHUB_API_TOKEN"] = os.getenv("HUGGINGFACEHUB_API_TOKEN")
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    HUGGINGFACEHUB_API_TOKEN = getpass()
+    os.environ["HUGGINGFACEHUB_API_TOKEN"] = HUGGINGFACEHUB_API_TOKEN
+    app.run(debug=True)
