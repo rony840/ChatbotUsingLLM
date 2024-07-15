@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify, render_template_string, send_file
 import pyttsx3  # Text-to-Speech library
 
 app = Flask(__name__)
-chatbot = pipeline(task="conversational", model="facebook/blenderbot-400M-distill", use_auth_token=os.getenv("HUGGINGFACEHUB_API_TOKEN"))
+chatbot = pipeline(task="conversational", model="facebook/blenderbot-400M-distill")
 
 max_length = 128  # Maximum length allowed by the model
 conversation_history = []  # To store the entire conversation history
@@ -113,8 +113,6 @@ template = """
     </script>
 </body>
 </html>
-
-
 """
 
 def truncate_conversation_history(history, max_length):
@@ -163,12 +161,6 @@ def text_to_speech():
     return send_file('response.mp3')
 
 if __name__ == "__main__":
-    HUGGINGFACEHUB_API_TOKEN = getpass()
-    os.environ["HUGGINGFACEHUB_API_TOKEN"] = HUGGINGFACEHUB_API_TOKEN
-    app.run(debug=True)
-
-
-
-
-
-
+    os.environ["HUGGINGFACEHUB_API_TOKEN"] = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
