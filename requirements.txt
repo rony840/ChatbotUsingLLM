@@ -1,4 +1,0 @@
-flask
-transformers==4.41.2
-pytorch
-pyttsx3
