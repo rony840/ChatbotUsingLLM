@@ -1,26 +1,80 @@
+import os
+import subprocess
+import sys
+
+# Define the name of the virtual environment
+venv_name = 'chatbot_env'
+
+# Check if the virtual environment already exists
+if not os.path.exists(venv_name):
+    print(f"Creating virtual environment: {venv_name}")
+    subprocess.check_call([sys.executable, '-m', 'venv', venv_name])
+
+# Install required packages
+required_packages = [
+    'gradio',
+    'gtts',
+    'SpeechRecognition',
+    'python-multipart',
+    'groq'
+]
+
+# Activate the virtual environment and install the packages
+venv_pip = os.path.join(venv_name, 'Scripts', 'pip')
+try:
+    subprocess.check_call([venv_pip, 'install'] + required_packages)
+except Exception as e:
+    print("Error installing packages:", e)
+
 import gradio as gr
 from gtts import gTTS
 import speech_recognition as sr
-from transformers import pipeline, Conversation
+from groq import Groq
 import os
 
-# Initialize the conversational model
-init_chatbot = pipeline("conversational", model="facebook/blenderbot-400M-distill")
+# Set your API key directly here
+os.environ["GROQ_API_KEY"] = "ENTER YOUR GROQ API KEY HERE"
+
+# Initialize the GROQ client
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 # Initialize speech recognition
 recognizer = sr.Recognizer()
 
-def add_message(history, message):
+chat_history = []
+bot_history = []
+def add_message(chat_history, message):
     if message["text"] is not None:
-        history.append((message["text"], None))
-    return history
+        chat_history.append((message["text"], None))
+        print("Printing History After adding message: \n",chat_history)
+    return chat_history
 
-def bot(message, history):
+def bot(message, bot_history):
+    print("Printing ChatHistory Before adding message: \n",chat_history)
     user_input = message
-    conversation = Conversation(user_input)
-    result = init_chatbot(conversation)
-    bot_response = result.generated_responses[-1]
-    return bot_response, history
+    # Add user message to the conversation history
+    bot_history.append({
+        "role": "user",
+        "content": user_input
+    })
+
+    # Create a chat completion
+    chat_completion = client.chat.completions.create(
+        messages=bot_history,
+        model="llama3-8b-8192",
+    )
+    # Get the response from the chatbot
+    bot_response = chat_completion.choices[0].message.content
+
+    # Print the bot's response
+    print(f"Chatbot: {bot_response}")
+    # Add the bot's message to the conversation history
+    bot_history.append({
+        "role": "assistant",
+        "content": bot_response
+    })
+    print("Printing BotHistory After adding bot response: \n",chat_history)
+    return bot_response, chat_history
 
 def speech_to_text(audio_file_path):
     with sr.AudioFile(audio_file_path) as source:
@@ -94,9 +148,10 @@ with gr.Blocks(title="Chatbot using LLM") as demo:
 
             state = gr.State([])  # Initialize the state for chat history
 
-            def respond(message, history):
-                bot_response, updated_history = bot(message, history)
+            def respond(message, chat_history):
+                bot_response, updated_history = bot(message, bot_history)
                 updated_history.append((message, bot_response))
+                print("Printing Updated ChatHistory after respond: \n",updated_history)
                 return updated_history, updated_history, ""
 
             def handle_audio(audio, history):

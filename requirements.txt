@@ -1,4 +1,5 @@
-transformers==4.41.2
 gtts
 gradio
 speechrecognition
+python-multipart
+groq
